@@ -1,306 +1,837 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#f5f5f7">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <title>NASDAQ Risk Monitor</title>
-  <style>
-    * {
-      box-sizing: border-box;
-    }
-    body {
-      margin: 0;
-      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display",
-                   "Helvetica Neue", Arial, sans-serif;
-      background: #f5f5f7;
-      color: #1d1d1f;
-    }
-    .container {
-      max-width: 680px;
-      margin: 0 auto;
-      padding: 24px 18px 40px;
-    }
-    .header {
-      margin-bottom: 24px;
-    }
-    .title {
-      font-size: 30px;
-      font-weight: 700;
-      margin-bottom: 6px;
-    }
-    .subtitle {
-      color: #86868b;
-      font-size: 14px;
-    }
-    .risk-card {
-      background: white;
-      border-radius: 24px;
-      padding: 28px;
-      text-align: center;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.06);
-      margin-bottom: 18px;
-    }
-    .risk-label {
-      font-size: 14px;
-      color: #86868b;
-      margin-bottom: 8px;
-    }
-    .risk-score {
-      font-size: 64px;
-      font-weight: 750;
-      line-height: 1;
-      margin-bottom: 10px;
-    }
-    .risk-level {
-      display: inline-block;
-      padding: 7px 16px;
-      border-radius: 20px;
-      background: #fff3cd;
-      color: #8a6500;
-      font-weight: 600;
-      font-size: 14px;
-    }
-    .update {
-      margin-top: 16px;
-      font-size: 12px;
-      color: #999;
-    }
-    .section-title {
-      font-size: 19px;
-      font-weight: 650;
-      margin: 26px 4px 12px;
-    }
-    .indicator {
-      background: white;
-      border-radius: 18px;
-      padding: 17px;
-      margin-bottom: 10px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.035);
-    }
-    .indicator-left {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-    .dot {
-      width: 11px;
-      height: 11px;
-      border-radius: 50%;
-      background: #34c759;
-      flex-shrink: 0;
-    }
-    .dot.yellow {
-      background: #ffcc00;
-    }
-    .dot.orange {
-      background: #ff9500;
-    }
-    .dot.red {
-      background: #ff3b30;
-    }
-    .indicator-name {
-      font-weight: 600;
-      font-size: 15px;
-    }
-    .indicator-desc {
-      font-size: 12px;
-      color: #999;
-      margin-top: 3px;
-    }
-    .indicator-value {
-      font-size: 14px;
-      font-weight: 600;
-      color: #666;
-      text-align: right;
-    }
-    .note {
-      background: white;
-      border-radius: 18px;
-      padding: 18px;
-      margin-top: 20px;
-      color: #666;
-      font-size: 13px;
-      line-height: 1.7;
-    }
-    .loading {
-      color: #999;
-      text-align: center;
-      padding: 30px;
-    }
-    .error {
-      background: #fff0ef;
-      color: #b42318;
-      border-radius: 18px;
-      padding: 18px;
-      margin-top: 20px;
-      font-size: 13px;
-      line-height: 1.6;
-    }
-    .footer {
-      text-align: center;
-      margin-top: 30px;
-      color: #aaa;
-      font-size: 11px;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>NASDAQ Risk Monitor</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 20px 14px 40px;
+            font-family:
+                -apple-system,
+                BlinkMacSystemFont,
+                "Segoe UI",
+                "PingFang SC",
+                "Hiragino Sans GB",
+                "Microsoft YaHei",
+                sans-serif;
+            background: #f5f6f8;
+            color: #202124;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            margin: 8px 0 4px;
+            font-size: 27px;
+            font-weight: 700;
+        }
+
+        .subtitle {
+            color: #777;
+            font-size: 13px;
+            margin-bottom: 20px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 18px;
+            padding: 20px;
+            margin-bottom: 14px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.04);
+        }
+
+        .score-card {
+            text-align: center;
+            padding: 26px 20px;
+        }
+
+        .score {
+            font-size: 64px;
+            line-height: 1;
+            font-weight: 750;
+            margin: 8px 0;
+        }
+
+        .risk-level {
+            font-size: 18px;
+            font-weight: 600;
+            margin-top: 8px;
+        }
+
+        .updated {
+            margin-top: 12px;
+            font-size: 12px;
+            color: #888;
+        }
+
+        .section-title {
+            font-size: 17px;
+            font-weight: 700;
+            margin-bottom: 16px;
+        }
+
+        .indicator {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 13px 0;
+            border-bottom: 1px solid #eee;
+        }
+
+        .indicator:last-child {
+            border-bottom: none;
+        }
+
+        .indicator-name {
+            font-size: 14px;
+        }
+
+        .indicator-value {
+            font-size: 15px;
+            font-weight: 650;
+            margin-right: 8px;
+        }
+
+        .status {
+            font-size: 12px;
+            color: #777;
+        }
+
+        .component {
+            margin-bottom: 14px;
+        }
+
+        .component:last-child {
+            margin-bottom: 0;
+        }
+
+        .component-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 6px;
+            font-size: 13px;
+        }
+
+        .bar-bg {
+            width: 100%;
+            height: 8px;
+            background: #edf0f2;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .bar {
+            height: 100%;
+            border-radius: 10px;
+            background: #555;
+        }
+
+        .trend-summary {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .trend-label {
+            font-size: 15px;
+            font-weight: 650;
+        }
+
+        .trend-change {
+            font-size: 13px;
+            color: #777;
+        }
+
+        canvas {
+            width: 100%;
+            height: 180px;
+            display: block;
+        }
+
+        .history-info {
+            margin-top: 12px;
+            font-size: 12px;
+            color: #888;
+            text-align: center;
+        }
+
+        .interpretation {
+            line-height: 1.7;
+            font-size: 14px;
+            color: #444;
+        }
+
+        .loading {
+            color: #888;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .error {
+            color: #999;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            body {
+                background: #111;
+                color: #eee;
+            }
+
+            .card {
+                background: #1c1c1e;
+            }
+
+            .subtitle,
+            .updated,
+            .status,
+            .trend-change,
+            .history-info,
+            .error {
+                color: #999;
+            }
+
+            .indicator {
+                border-bottom-color: #333;
+            }
+
+            .bar-bg {
+                background: #333;
+            }
+
+            .interpretation {
+                color: #ccc;
+            }
+        }
+    </style>
 </head>
+
 <body>
+
 <div class="container">
-  <div class="header">
-    <div class="title">NASDAQ Risk Monitor</div>
-    <div class="subtitle">纳斯达克风险监测仪表盘</div>
-  </div>
-  <div id="app">
-    <div class="loading">正在读取市场数据……</div>
-  </div>
-  <div class="footer">
-    NASDAQ Risk Monitor · Personal Dashboard
-  </div>
+
+    <h1>NASDAQ Risk Monitor</h1>
+    <div class="subtitle">
+        纳斯达克市场风险监测
+    </div>
+
+    <!-- 当前风险 -->
+    <div class="card score-card">
+
+        <div>当前风险</div>
+
+        <div class="score" id="score">
+            --
+        </div>
+
+        <div class="risk-level" id="riskLevel">
+            正在读取……
+        </div>
+
+        <div class="updated" id="updated">
+            --
+        </div>
+
+    </div>
+
+
+    <!-- 风险趋势 -->
+    <div class="card">
+
+        <div class="section-title">
+            风险趋势
+        </div>
+
+        <div class="trend-summary">
+            <div class="trend-label" id="trendLabel">
+                正在读取……
+            </div>
+
+            <div class="trend-change" id="trendChange">
+                --
+            </div>
+        </div>
+
+        <canvas id="riskChart"></canvas>
+
+        <div class="history-info" id="historyInfo">
+            正在读取历史数据……
+        </div>
+
+    </div>
+
+
+    <!-- 市场指标 -->
+    <div class="card">
+
+        <div class="section-title">
+            当前指标
+        </div>
+
+        <div id="indicators">
+            <div class="loading">
+                正在读取……
+            </div>
+        </div>
+
+    </div>
+
+
+    <!-- 风险组成 -->
+    <div class="card">
+
+        <div class="section-title">
+            风险组成
+        </div>
+
+        <div id="components">
+            <div class="loading">
+                正在读取……
+            </div>
+        </div>
+
+    </div>
+
+
+    <!-- 解读 -->
+    <div class="card">
+
+        <div class="section-title">
+            当前解读
+        </div>
+
+        <div class="interpretation" id="interpretation">
+            正在读取数据……
+        </div>
+
+    </div>
+
 </div>
+
+
 <script>
+
 async function loadData() {
-  const app = document.getElementById("app");
-  try {
-    /*
-      加上时间戳，避免手机浏览器继续使用旧缓存。
-    */
-    const response = await fetch("data.json?t=" + Date.now());
-    if (!response.ok) {
-      throw new Error("data.json 无法读取");
+
+    try {
+
+        /*
+         * 加时间戳，避免手机浏览器缓存旧数据
+         */
+        const timestamp = Date.now();
+
+        const dataResponse =
+            await fetch("data.json?t=" + timestamp);
+
+        const data =
+            await dataResponse.json();
+
+
+        /*
+         * 读取历史数据
+         */
+        let history = [];
+
+        try {
+
+            const historyResponse =
+                await fetch("history.json?t=" + timestamp);
+
+            history =
+                await historyResponse.json();
+
+        } catch (error) {
+
+            console.log("history.json 暂不可用");
+
+        }
+
+
+        renderCurrent(data);
+
+        renderHistory(history);
+
+    } catch (error) {
+
+        console.error(error);
+
+        document.getElementById("interpretation").innerHTML =
+            "数据读取失败，请稍后刷新页面。";
+
     }
-    const data = await response.json();
-    render(data);
-  } catch (error) {
-    app.innerHTML = `
-      <div class="error">
-        <strong>数据读取失败</strong><br><br>
-        暂时无法读取风险数据。<br>
-        请稍后刷新页面。
-      </div>
-    `;
-    console.error(error);
-  }
+
 }
-function getDotClass(status) {
-  if (status.includes("低") || status.includes("正常")) {
-    return "";
-  }
-  if (status.includes("中")) {
-    return "yellow";
-  }
-  if (status.includes("偏高")) {
-    return "orange";
-  }
-  if (status.includes("高") || status.includes("危险")) {
-    return "red";
-  }
-  return "yellow";
-}
-function render(data) {
-  const indicators = Object.values(data.indicators);
-  const indicatorsHTML = indicators.map(item => {
-    const dotClass = getDotClass(item.status);
-    const value =
-      item.value === null
-      ? item.status
-      : `${item.value} · ${item.status}`;
-    return `
-      <div class="indicator">
-        <div class="indicator-left">
-          <div class="dot ${dotClass}"></div>
-          <div>
-            <div class="indicator-name">
-              ${item.name}
+
+
+/*
+ * 当前数据
+ */
+function renderCurrent(data) {
+
+    document.getElementById("score").textContent =
+        data.risk_score;
+
+    document.getElementById("riskLevel").textContent =
+        data.risk_level;
+
+    document.getElementById("updated").textContent =
+        "更新时间：" + data.updated;
+
+
+    /*
+     * 指标
+     */
+    const indicators =
+        document.getElementById("indicators");
+
+    indicators.innerHTML = "";
+
+    Object.values(data.indicators).forEach(item => {
+
+        const row =
+            document.createElement("div");
+
+        row.className = "indicator";
+
+        let value = item.value;
+
+        if (typeof value === "number") {
+
+            if (item.name.includes("市场参与度")) {
+                value = value.toFixed(1) + "%";
+            } else if (item.name.includes("VIX")) {
+                value = value.toFixed(2);
+            } else if (item.name.includes("国债")) {
+                value = value.toFixed(3) + "%";
+            } else {
+                value = value.toFixed(2);
+            }
+
+        }
+
+        row.innerHTML = `
+            <div>
+                <div class="indicator-name">
+                    ${item.name}
+                </div>
             </div>
-            <div class="indicator-desc">
-              ${getDescription(item.name)}
+
+            <div>
+                <span class="indicator-value">
+                    ${value ?? "--"}
+                </span>
+
+                <span class="status">
+                    ${item.status}
+                </span>
             </div>
-          </div>
-        </div>
-        <div class="indicator-value">
-          ${value}
-        </div>
-      </div>
-    `;
-  }).join("");
-  document.getElementById("app").innerHTML = `
-    <div class="risk-card">
-      <div class="risk-label">
-        当前综合风险
-      </div>
-      <div class="risk-score">
-        ${data.risk_score}
-      </div>
-      <div class="risk-level">
-        ${getRiskEmoji(data.risk_score)}
-        ${data.risk_level}
-      </div>
-      <div class="update">
-        最后更新：${data.updated}
-      </div>
-    </div>
-    <div class="section-title">
-      风险构成
-    </div>
-    ${indicatorsHTML}
-    <div class="note">
-      <strong>📌 今日解读</strong>
-      <br><br>
-      ${getComment(data.risk_score)}
-    </div>
-  `;
+        `;
+
+        indicators.appendChild(row);
+
+    });
+
+
+    /*
+     * 风险组成
+     */
+    const components =
+        document.getElementById("components");
+
+    components.innerHTML = "";
+
+    const names = {
+        trend: "趋势",
+        volatility: "波动率",
+        rates: "利率",
+        market: "市场状态",
+        participation: "市场参与度"
+    };
+
+
+    Object.entries(data.risk_components).forEach(
+        ([key, value]) => {
+
+            const item =
+                document.createElement("div");
+
+            item.className = "component";
+
+            item.innerHTML = `
+                <div class="component-header">
+                    <span>
+                        ${names[key] || key}
+                    </span>
+
+                    <span>
+                        ${value}
+                    </span>
+                </div>
+
+                <div class="bar-bg">
+                    <div
+                        class="bar"
+                        style="width:${Math.min(value,100)}%"
+                    ></div>
+                </div>
+            `;
+
+            components.appendChild(item);
+
+        }
+    );
+
+
+    /*
+     * 自动生成当前解读
+     */
+    const rates =
+        data.risk_components.rates;
+
+    const trend =
+        data.risk_components.trend;
+
+    const volatility =
+        data.risk_components.volatility;
+
+    const market =
+        data.risk_components.market;
+
+
+    let text = "";
+
+    if (rates >= 70) {
+
+        text +=
+            "目前最突出的风险来自利率环境，" +
+            "美国10年期国债收益率处于较高水平，" +
+            "且近期变化较快。";
+
+    } else {
+
+        text +=
+            "目前利率模块没有出现特别突出的异常。";
+
+    }
+
+
+    if (trend < 30 && market < 30) {
+
+        text +=
+            "与此同时，纳斯达克趋势和近期市场状态仍然较强，" +
+            "暂未出现明显的市场压力。";
+
+    }
+
+
+    if (volatility < 30) {
+
+        text +=
+            "VIX处于相对较低水平，" +
+            "市场短期波动压力目前不高。";
+
+    }
+
+
+    document.getElementById("interpretation").textContent =
+        text;
+
 }
-function getDescription(name) {
-  const descriptions = {
-    "纳斯达克":
-      "指数价格与趋势",
-    "VIX":
-      "市场隐含波动率",
-    "美国10年期国债收益率":
-      "利率与金融环境"
-  };
-  return descriptions[name] || "市场风险指标";
+
+
+/*
+ * 历史趋势
+ */
+function renderHistory(history) {
+
+    const canvas =
+        document.getElementById("riskChart");
+
+    const ctx =
+        canvas.getContext("2d");
+
+
+    if (!Array.isArray(history) || history.length === 0) {
+
+        document.getElementById("trendLabel").textContent =
+            "等待历史数据";
+
+        document.getElementById("trendChange").textContent =
+            "--";
+
+        document.getElementById("historyInfo").textContent =
+            "目前还没有历史记录。";
+
+        return;
+
+    }
+
+
+    /*
+     * 按日期排序
+     */
+    history.sort(
+        (a,b) =>
+            new Date(a.date) -
+            new Date(b.date)
+    );
+
+
+    /*
+     * 最近30条
+     */
+    const recent =
+        history.slice(-30);
+
+
+    const scores =
+        recent.map(item => item.score);
+
+
+    const first =
+        scores[0];
+
+    const last =
+        scores[scores.length - 1];
+
+    const change =
+        last - first;
+
+
+    /*
+     * 趋势判断
+     */
+    let label = "";
+
+    if (scores.length < 3) {
+
+        label = "等待更多数据";
+
+    } else if (change >= 5) {
+
+        label = "↑ 风险正在积累";
+
+    } else if (change <= -5) {
+
+        label = "↓ 风险正在缓解";
+
+    } else {
+
+        label = "→ 风险基本稳定";
+
+    }
+
+
+    document.getElementById("trendLabel").textContent =
+        label;
+
+
+    if (scores.length >= 2) {
+
+        const sign =
+            change > 0 ? "+" : "";
+
+        document.getElementById("trendChange").textContent =
+            `近${recent.length}次 ${sign}${change}`;
+
+    } else {
+
+        document.getElementById("trendChange").textContent =
+            "首次记录";
+
+    }
+
+
+    document.getElementById("historyInfo").textContent =
+        `共 ${history.length} 条历史记录 · 图表显示最近 ${recent.length} 条`;
+
+
+    drawChart(canvas, ctx, scores);
+
 }
-function getRiskEmoji(score) {
-  if (score < 25) return "🟢";
-  if (score < 50) return "🟡";
-  if (score < 70) return "🟠";
-  return "🔴";
+
+
+/*
+ * 绘制风险曲线
+ */
+function drawChart(canvas, ctx, scores) {
+
+    const rect =
+        canvas.getBoundingClientRect();
+
+    const dpr =
+        window.devicePixelRatio || 1;
+
+    canvas.width =
+        rect.width * dpr;
+
+    canvas.height =
+        rect.height * dpr;
+
+    ctx.scale(dpr, dpr);
+
+
+    const width =
+        rect.width;
+
+    const height =
+        rect.height;
+
+
+    /*
+     * 留一点边距
+     */
+    const left = 8;
+    const right = 8;
+    const top = 12;
+    const bottom = 20;
+
+
+    const chartWidth =
+        width - left - right;
+
+    const chartHeight =
+        height - top - bottom;
+
+
+    /*
+     * 背景网格
+     */
+    ctx.strokeStyle = "#eeeeee";
+    ctx.lineWidth = 1;
+
+    [0,25,50,75,100].forEach(value => {
+
+        const y =
+            top +
+            chartHeight -
+            value / 100 * chartHeight;
+
+        ctx.beginPath();
+
+        ctx.moveTo(left, y);
+
+        ctx.lineTo(
+            width - right,
+            y
+        );
+
+        ctx.stroke();
+
+    });
+
+
+    if (scores.length === 1) {
+
+        const x =
+            width / 2;
+
+        const y =
+            top +
+            chartHeight -
+            scores[0] / 100 * chartHeight;
+
+        ctx.fillStyle = "#555";
+
+        ctx.beginPath();
+
+        ctx.arc(x, y, 5, 0, Math.PI * 2);
+
+        ctx.fill();
+
+        return;
+
+    }
+
+
+    /*
+     * 曲线
+     */
+    ctx.strokeStyle = "#555";
+    ctx.lineWidth = 2.5;
+    ctx.lineJoin = "round";
+    ctx.lineCap = "round";
+
+    ctx.beginPath();
+
+
+    scores.forEach((score, index) => {
+
+        const x =
+            left +
+            index /
+            (scores.length - 1) *
+            chartWidth;
+
+        const y =
+            top +
+            chartHeight -
+            score / 100 *
+            chartHeight;
+
+
+        if (index === 0) {
+
+            ctx.moveTo(x, y);
+
+        } else {
+
+            ctx.lineTo(x, y);
+
+        }
+
+    });
+
+
+    ctx.stroke();
+
+
+    /*
+     * 最后一个点
+     */
+    const lastIndex =
+        scores.length - 1;
+
+    const x =
+        left + chartWidth;
+
+    const y =
+        top +
+        chartHeight -
+        scores[lastIndex] / 100 *
+        chartHeight;
+
+
+    ctx.fillStyle = "#555";
+
+    ctx.beginPath();
+
+    ctx.arc(x, y, 4.5, 0, Math.PI * 2);
+
+    ctx.fill();
+
 }
-function getComment(score) {
-  if (score < 25) {
-    return `
-      当前综合风险处于较低区间。
-      暂未观察到明显的系统性压力信号。
-    `;
-  }
-  if (score < 50) {
-    return `
-      当前综合风险处于中等区间。
-      部分指标值得持续观察，但单日变化本身不代表趋势反转。
-      更值得关注的是风险是否连续数周上升。
-    `;
-  }
-  if (score < 70) {
-    return `
-      当前综合风险已经进入较高区间。
-      建议重点观察多个指标是否同时恶化，
-      尤其是波动率、利率、市场宽度以及指数趋势。
-    `;
-  }
-  return `
-    当前多个风险指标可能同时处于较高压力区间。
-    这种状态需要结合历史数据进一步判断，
-    不应仅根据单日分数作出结论。
-  `;
-}
+
+
+/*
+ * 启动
+ */
 loadData();
+
 </script>
+
 </body>
 </html>
