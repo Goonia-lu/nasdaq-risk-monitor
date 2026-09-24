@@ -1,0 +1,22 @@
+{
+  "updated": "2026-09-24",
+  "risk_score": 42,
+  "risk_level": "中等风险",
+  "indicators": {
+    "nasdaq": {
+      "name": "纳斯达克",
+      "value": null,
+      "status": "等待数据"
+    },
+    "vix": {
+      "name": "VIX",
+      "value": null,
+      "status": "等待数据"
+    },
+    "treasury10y": {
+      "name": "美国10年期国债收益率",
+      "value": null,
+      "status": "等待数据"
+    }
+  }
+}
