@@ -1,8 +1,8 @@
 {
   "updated": "2026-09-24",
-  "risk_score": 25,
-  "risk_level": "中等风险",
-  "model_version": "1.2",
+  "risk_score": 23,
+  "risk_level": "低风险",
+  "model_version": "1.3",
   "indicators": {
     "nasdaq": {
       "name": "纳斯达克",
@@ -16,8 +16,8 @@
     },
     "treasury10y": {
       "name": "美国10年期国债收益率",
-      "value": 0.511,
-      "status": "较低"
+      "value": 5.114,
+      "status": "偏高"
     },
     "participation": {
       "name": "市场参与度",
@@ -28,7 +28,7 @@
   "risk_components": {
     "trend": 6,
     "volatility": 23,
-    "rates": 100,
+    "rates": 90,
     "market": 5,
     "participation": 20
   },
@@ -37,10 +37,10 @@
     "nasdaq_ma200": 24589.15,
     "vix_percentile": 11.9,
     "vix_20d_change": -0.2,
-    "treasury10y": 0.511,
+    "treasury10y": 5.114,
     "treasury_percentile": 100.0,
-    "treasury_20d_change": 0.041,
-    "treasury_60d_change": 0.074,
+    "treasury_20d_change": 0.41,
+    "treasury_60d_change": 0.742,
     "treasury_20d_change_percentile": 99.6,
     "treasury_60d_change_percentile": 100.0,
     "nasdaq_20d_return": 3.0,
