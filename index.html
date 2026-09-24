@@ -3,14 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#f5f5f5">
+  <meta name="theme-color" content="#f5f5f7">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <title>NASDAQ Risk Monitor</title>
-
   <style>
     * {
       box-sizing: border-box;
     }
-
     body {
       margin: 0;
       font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display",
@@ -18,28 +18,23 @@
       background: #f5f5f7;
       color: #1d1d1f;
     }
-
     .container {
       max-width: 680px;
       margin: 0 auto;
       padding: 24px 18px 40px;
     }
-
     .header {
       margin-bottom: 24px;
     }
-
     .title {
       font-size: 30px;
       font-weight: 700;
       margin-bottom: 6px;
     }
-
     .subtitle {
       color: #86868b;
       font-size: 14px;
     }
-
     .risk-card {
       background: white;
       border-radius: 24px;
@@ -48,20 +43,17 @@
       box-shadow: 0 4px 20px rgba(0,0,0,0.06);
       margin-bottom: 18px;
     }
-
     .risk-label {
       font-size: 14px;
       color: #86868b;
       margin-bottom: 8px;
     }
-
     .risk-score {
       font-size: 64px;
       font-weight: 750;
       line-height: 1;
       margin-bottom: 10px;
     }
-
     .risk-level {
       display: inline-block;
       padding: 7px 16px;
@@ -71,19 +63,16 @@
       font-weight: 600;
       font-size: 14px;
     }
-
     .update {
       margin-top: 16px;
       font-size: 12px;
       color: #999;
     }
-
     .section-title {
       font-size: 19px;
       font-weight: 650;
       margin: 26px 4px 12px;
     }
-
     .indicator {
       background: white;
       border-radius: 18px;
@@ -94,51 +83,44 @@
       justify-content: space-between;
       box-shadow: 0 2px 10px rgba(0,0,0,0.035);
     }
-
     .indicator-left {
       display: flex;
       align-items: center;
       gap: 12px;
     }
-
     .dot {
       width: 11px;
       height: 11px;
       border-radius: 50%;
       background: #34c759;
+      flex-shrink: 0;
     }
-
     .dot.yellow {
       background: #ffcc00;
     }
-
     .dot.orange {
       background: #ff9500;
     }
-
     .dot.red {
       background: #ff3b30;
     }
-
     .indicator-name {
       font-weight: 600;
       font-size: 15px;
     }
-
     .indicator-desc {
       font-size: 12px;
       color: #999;
       margin-top: 3px;
     }
-
     .indicator-value {
       font-size: 14px;
       font-weight: 600;
       color: #666;
+      text-align: right;
     }
-
     .note {
-      background: #fff;
+      background: white;
       border-radius: 18px;
       padding: 18px;
       margin-top: 20px;
@@ -146,7 +128,20 @@
       font-size: 13px;
       line-height: 1.7;
     }
-
+    .loading {
+      color: #999;
+      text-align: center;
+      padding: 30px;
+    }
+    .error {
+      background: #fff0ef;
+      color: #b42318;
+      border-radius: 18px;
+      padding: 18px;
+      margin-top: 20px;
+      font-size: 13px;
+      line-height: 1.6;
+    }
     .footer {
       text-align: center;
       margin-top: 30px;
@@ -155,112 +150,157 @@
     }
   </style>
 </head>
-
 <body>
-
-  <div class="container">
-
-    <div class="header">
-      <div class="title">NASDAQ Risk Monitor</div>
-      <div class="subtitle">纳斯达克风险监测仪表盘</div>
-    </div>
-
-    <div class="risk-card">
-
-      <div class="risk-label">当前综合风险</div>
-
-      <div class="risk-score">42</div>
-
-      <div class="risk-level">
-        🟡 中等风险
-      </div>
-
-      <div class="update">
-        最后更新：2026-09-24
-      </div>
-
-    </div>
-
-    <div class="section-title">风险构成</div>
-
-    <div class="indicator">
-      <div class="indicator-left">
-        <div class="dot yellow"></div>
-        <div>
-          <div class="indicator-name">估值</div>
-          <div class="indicator-desc">纳指整体估值水平</div>
-        </div>
-      </div>
-      <div class="indicator-value">中等</div>
-    </div>
-
-    <div class="indicator">
-      <div class="indicator-left">
-        <div class="dot"></div>
-        <div>
-          <div class="indicator-name">VIX</div>
-          <div class="indicator-desc">市场隐含波动率</div>
-        </div>
-      </div>
-      <div class="indicator-value">较低</div>
-    </div>
-
-    <div class="indicator">
-      <div class="indicator-left">
-        <div class="dot yellow"></div>
-        <div>
-          <div class="indicator-name">市场宽度</div>
-          <div class="indicator-desc">上涨股票参与程度</div>
-        </div>
-      </div>
-      <div class="indicator-value">中等</div>
-    </div>
-
-    <div class="indicator">
-      <div class="indicator-left">
-        <div class="dot yellow"></div>
-        <div>
-          <div class="indicator-name">利率环境</div>
-          <div class="indicator-desc">美债收益率与流动性</div>
-        </div>
-      </div>
-      <div class="indicator-value">中等</div>
-    </div>
-
-    <div class="indicator">
-      <div class="indicator-left">
-        <div class="dot orange"></div>
-        <div>
-          <div class="indicator-name">科技股集中度</div>
-          <div class="indicator-desc">大型科技股对指数的贡献</div>
-        </div>
-      </div>
-      <div class="indicator-value">偏高</div>
-    </div>
-
-    <div class="indicator">
-      <div class="indicator-left">
-        <div class="dot"></div>
-        <div>
-          <div class="indicator-name">市场趋势</div>
-          <div class="indicator-desc">价格趋势与动量</div>
-        </div>
-      </div>
-      <div class="indicator-value">正常</div>
-    </div>
-
-    <div class="note">
-      <strong>📌 今日解读</strong><br><br>
-      当前风险处于中等水平。部分估值和科技股集中度值得关注，
-      但暂未出现单一指标大幅恶化的情况。
-      单日变化不代表趋势反转，重点观察风险是否连续数周上升。
-    </div>
-
-    <div class="footer">
-      NASDAQ Risk Monitor · Personal Dashboard
-    </div>
-
+<div class="container">
+  <div class="header">
+    <div class="title">NASDAQ Risk Monitor</div>
+    <div class="subtitle">纳斯达克风险监测仪表盘</div>
   </div>
-
+  <div id="app">
+    <div class="loading">正在读取市场数据……</div>
+  </div>
+  <div class="footer">
+    NASDAQ Risk Monitor · Personal Dashboard
+  </div>
+</div>
+<script>
+async function loadData() {
+  const app = document.getElementById("app");
+  try {
+    /*
+      加上时间戳，避免手机浏览器继续使用旧缓存。
+    */
+    const response = await fetch("data.json?t=" + Date.now());
+    if (!response.ok) {
+      throw new Error("data.json 无法读取");
+    }
+    const data = await response.json();
+    render(data);
+  } catch (error) {
+    app.innerHTML = `
+      <div class="error">
+        <strong>数据读取失败</strong><br><br>
+        暂时无法读取风险数据。<br>
+        请稍后刷新页面。
+      </div>
+    `;
+    console.error(error);
+  }
+}
+function getDotClass(status) {
+  if (status.includes("低") || status.includes("正常")) {
+    return "";
+  }
+  if (status.includes("中")) {
+    return "yellow";
+  }
+  if (status.includes("偏高")) {
+    return "orange";
+  }
+  if (status.includes("高") || status.includes("危险")) {
+    return "red";
+  }
+  return "yellow";
+}
+function render(data) {
+  const indicators = Object.values(data.indicators);
+  const indicatorsHTML = indicators.map(item => {
+    const dotClass = getDotClass(item.status);
+    const value =
+      item.value === null
+      ? item.status
+      : `${item.value} · ${item.status}`;
+    return `
+      <div class="indicator">
+        <div class="indicator-left">
+          <div class="dot ${dotClass}"></div>
+          <div>
+            <div class="indicator-name">
+              ${item.name}
+            </div>
+            <div class="indicator-desc">
+              ${getDescription(item.name)}
+            </div>
+          </div>
+        </div>
+        <div class="indicator-value">
+          ${value}
+        </div>
+      </div>
+    `;
+  }).join("");
+  document.getElementById("app").innerHTML = `
+    <div class="risk-card">
+      <div class="risk-label">
+        当前综合风险
+      </div>
+      <div class="risk-score">
+        ${data.risk_score}
+      </div>
+      <div class="risk-level">
+        ${getRiskEmoji(data.risk_score)}
+        ${data.risk_level}
+      </div>
+      <div class="update">
+        最后更新：${data.updated}
+      </div>
+    </div>
+    <div class="section-title">
+      风险构成
+    </div>
+    ${indicatorsHTML}
+    <div class="note">
+      <strong>📌 今日解读</strong>
+      <br><br>
+      ${getComment(data.risk_score)}
+    </div>
+  `;
+}
+function getDescription(name) {
+  const descriptions = {
+    "纳斯达克":
+      "指数价格与趋势",
+    "VIX":
+      "市场隐含波动率",
+    "美国10年期国债收益率":
+      "利率与金融环境"
+  };
+  return descriptions[name] || "市场风险指标";
+}
+function getRiskEmoji(score) {
+  if (score < 25) return "🟢";
+  if (score < 50) return "🟡";
+  if (score < 70) return "🟠";
+  return "🔴";
+}
+function getComment(score) {
+  if (score < 25) {
+    return `
+      当前综合风险处于较低区间。
+      暂未观察到明显的系统性压力信号。
+    `;
+  }
+  if (score < 50) {
+    return `
+      当前综合风险处于中等区间。
+      部分指标值得持续观察，但单日变化本身不代表趋势反转。
+      更值得关注的是风险是否连续数周上升。
+    `;
+  }
+  if (score < 70) {
+    return `
+      当前综合风险已经进入较高区间。
+      建议重点观察多个指标是否同时恶化，
+      尤其是波动率、利率、市场宽度以及指数趋势。
+    `;
+  }
+  return `
+    当前多个风险指标可能同时处于较高压力区间。
+    这种状态需要结合历史数据进一步判断，
+    不应仅根据单日分数作出结论。
+  `;
+}
+loadData();
+</script>
 </body>
 </html>
