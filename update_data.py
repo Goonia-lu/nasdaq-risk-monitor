@@ -2,17 +2,20 @@ import json
 import urllib.request
 from datetime import datetime, timezone
 # ============================================================
-# NASDAQ Risk Monitor
-# 第一版正式风险模型
+# NASDAQ Risk Monitor v1.1
 #
-# 数据：
-#   ^IXIC  Nasdaq Composite
-#   ^VIX   CBOE Volatility Index
-#   ^TNX   US 10Y Treasury Yield
+# 修复：
+#   ^TNX Yahoo 数据需要 /10 才是百分比收益率
 #
-# 风险分数：
-#   0   = 风险较低
-#   100 = 风险极高
+# 新增：
+#   QQQ / QQEW 参与度代理
+#
+# 当前模块：
+#   1. 趋势
+#   2. 波动率
+#   3. 利率
+#   4. 市场状态
+#   5. 参与度代理
 # ============================================================
 def get_json(url):
     request = urllib.request.Request(
@@ -28,7 +31,7 @@ def get_json(url):
         return json.loads(
             response.read().decode("utf-8")
         )
-def get_history(symbol, days=260):
+def get_history(symbol):
     url = (
         "https://query1.finance.yahoo.com/v8/finance/chart/"
         + symbol
@@ -50,23 +53,26 @@ def get_history(symbol, days=260):
                 "timestamp": timestamp,
                 "close": float(close)
             })
-    return values[-days:]
+    return values
 def moving_average(values, period):
     if len(values) < period:
         return None
-    recent = values[-period:]
     return sum(
-        recent
+        values[-period:]
     ) / period
-def drawdown_from_peak(values):
-    if not values:
-        return 0
-    peak = max(values)
-    current = values[-1]
-    return (
-        current / peak - 1
-    ) * 100
-def percentile_rank(values, current):
+def clamp(
+    value,
+    minimum=0,
+    maximum=100
+):
+    return max(
+        minimum,
+        min(maximum, value)
+    )
+def percentile_rank(
+    values,
+    current
+):
     if not values:
         return 50
     below = sum(
@@ -76,13 +82,16 @@ def percentile_rank(values, current):
     return (
         below / len(values)
     ) * 100
-def clamp(value, minimum=0, maximum=100):
-    return max(
-        minimum,
-        min(maximum, value)
-    )
+def drawdown_from_peak(values):
+    if not values:
+        return 0
+    peak = max(values)
+    current = values[-1]
+    return (
+        current / peak - 1
+    ) * 100
 # ============================================================
-# 趋势风险
+# 1. 趋势风险
 # ============================================================
 def calculate_trend_risk(nasdaq):
     prices = [
@@ -98,38 +107,48 @@ def calculate_trend_risk(nasdaq):
         prices,
         200
     )
-    risk = 0
-    # 当前价格相对 50 日均线
+    risk50 = 0
+    risk200 = 0
     if ma50:
         distance50 = (
             current / ma50 - 1
         ) * 100
         if distance50 < -10:
-            risk += 35
+            risk50 = 100
         elif distance50 < -5:
-            risk += 25
+            risk50 = 70
         elif distance50 < 0:
-            risk += 12
+            risk50 = 40
         elif distance50 < 5:
-            risk += 5
-    # 当前价格相对 200 日均线
+            risk50 = 15
+        else:
+            risk50 = 0
     if ma200:
         distance200 = (
             current / ma200 - 1
         ) * 100
         if distance200 < -15:
-            risk += 65
+            risk200 = 100
         elif distance200 < -10:
-            risk += 50
+            risk200 = 85
         elif distance200 < 0:
-            risk += 30
+            risk200 = 60
         elif distance200 < 5:
-            risk += 15
+            risk200 = 25
         else:
-            risk += 0
-    return clamp(risk / 1.0), ma50, ma200
+            risk200 = 0
+    risk = (
+        risk50 * 0.4
+        +
+        risk200 * 0.6
+    )
+    return (
+        clamp(risk),
+        ma50,
+        ma200
+    )
 # ============================================================
-# VIX 风险
+# 2. VIX 风险
 # ============================================================
 def calculate_vix_risk(vix):
     values = [
@@ -137,12 +156,10 @@ def calculate_vix_risk(vix):
         for x in vix
     ]
     current = values[-1]
-    # 历史分位数
     percentile = percentile_rank(
         values,
         current
     )
-    # 最近 20 日变化
     if len(values) >= 20:
         old = values[-20]
         change = (
@@ -150,23 +167,43 @@ def calculate_vix_risk(vix):
         ) * 100
     else:
         change = 0
-    # 历史位置占 70%
-    # 最近变化占 30%
-    risk = (
-        percentile * 0.70
-        +
-        clamp(
-            50 + change * 5
-        ) * 0.30
+    change_risk = clamp(
+        50 + change * 5
     )
-    return clamp(risk), percentile, change
+    risk = (
+        percentile * 0.7
+        +
+        change_risk * 0.3
+    )
+    return (
+        clamp(risk),
+        percentile,
+        change
+    )
 # ============================================================
-# 利率风险
+# 3. 利率风险
+#
+# 关键修复：
+#
+# Yahoo ^TNX:
+#
+#     49.68
+#
+# 实际表示：
+#
+#     4.968%
+#
+# 因此这里统一 /10。
 # ============================================================
 def calculate_rate_risk(tnx):
-    values = [
+    raw_values = [
         x["close"]
         for x in tnx
+    ]
+    # 转换成真正的百分比收益率
+    values = [
+        value / 10
+        for value in raw_values
     ]
     current = values[-1]
     percentile = percentile_rank(
@@ -180,18 +217,37 @@ def calculate_rate_risk(tnx):
         )
     else:
         change = 0
-    # 利率本身的历史位置
-    # + 最近变化
+    # 当前利率水平风险
+    #
+    # 这里不再简单认为
+    # “高于4% = 高风险”。
+    #
+    # 主要看历史位置。
+    level_risk = percentile
+    # 20日快速上行才额外增加压力
+    if change >= 0.50:
+        shock_risk = 90
+    elif change >= 0.30:
+        shock_risk = 70
+    elif change >= 0.15:
+        shock_risk = 55
+    elif change >= 0:
+        shock_risk = 40
+    else:
+        shock_risk = 20
     risk = (
-        percentile * 0.75
+        level_risk * 0.65
         +
-        clamp(
-            50 + change * 20
-        ) * 0.25
+        shock_risk * 0.35
     )
-    return clamp(risk), percentile, change
+    return (
+        clamp(risk),
+        current,
+        percentile,
+        change
+    )
 # ============================================================
-# 市场状态
+# 4. 市场状态风险
 # ============================================================
 def calculate_market_risk(nasdaq):
     prices = [
@@ -199,59 +255,138 @@ def calculate_market_risk(nasdaq):
         for x in nasdaq
     ]
     current = prices[-1]
-    # 20 日收益率
     if len(prices) >= 20:
         return20 = (
             current / prices[-20] - 1
         ) * 100
     else:
         return20 = 0
-    # 当前距过去一年最高点的回撤
     drawdown = drawdown_from_peak(
         prices
     )
-    risk = 0
-    # 动量越差，风险越高
+    # 20日动量
     if return20 < -15:
-        risk += 80
+        momentum_risk = 100
     elif return20 < -10:
-        risk += 60
+        momentum_risk = 80
     elif return20 < -5:
-        risk += 40
+        momentum_risk = 55
     elif return20 < 0:
-        risk += 20
+        momentum_risk = 30
     else:
-        risk += 5
+        momentum_risk = 5
     # 回撤
     if drawdown < -20:
-        risk += 100
+        drawdown_risk = 100
     elif drawdown < -15:
-        risk += 80
+        drawdown_risk = 80
     elif drawdown < -10:
-        risk += 60
+        drawdown_risk = 60
     elif drawdown < -5:
-        risk += 30
+        drawdown_risk = 30
     else:
-        risk += 5
-    risk /= 2
-    return clamp(risk), return20, drawdown
+        drawdown_risk = 5
+    risk = (
+        momentum_risk * 0.45
+        +
+        drawdown_risk * 0.55
+    )
+    return (
+        clamp(risk),
+        return20,
+        drawdown
+    )
 # ============================================================
-# 总风险
+# 5. 市场参与度代理
+#
+# QQQ:
+#   市值加权 Nasdaq-100 ETF
+#
+# QQEW:
+#   等权相关 Nasdaq-100 产品
+#
+# 如果 QQQ 明显跑赢 QQEW，
+# 说明大型成分股对指数贡献更强。
+#
+# 这不是严格意义上的市场宽度，
+# 所以暂时只占 10%。
+# ============================================================
+def calculate_participation_risk(
+    qqq,
+    qqew
+):
+    qqq_prices = [
+        x["close"]
+        for x in qqq
+    ]
+    qqew_prices = [
+        x["close"]
+        for x in qqew
+    ]
+    n = min(
+        len(qqq_prices),
+        len(qqew_prices)
+    )
+    qqq_prices = qqq_prices[-n:]
+    qqew_prices = qqew_prices[-n:]
+    if n < 60:
+        return (
+            50,
+            0
+        )
+    qqq_return = (
+        qqq_prices[-1]
+        /
+        qqq_prices[-60]
+        - 1
+    ) * 100
+    qqew_return = (
+        qqew_prices[-1]
+        /
+        qqew_prices[-60]
+        - 1
+    ) * 100
+    spread = (
+        qqq_return
+        -
+        qqew_return
+    )
+    # 大盘股明显跑赢等权：
+    # 市场内部可能更依赖少数大型股票。
+    if spread >= 15:
+        risk = 90
+    elif spread >= 10:
+        risk = 70
+    elif spread >= 5:
+        risk = 55
+    elif spread >= 2:
+        risk = 40
+    else:
+        risk = 20
+    return (
+        clamp(risk),
+        spread
+    )
+# ============================================================
+# 综合风险
 # ============================================================
 def calculate_total_risk(
     trend,
     volatility,
     rates,
-    market
+    market,
+    participation
 ):
     score = (
-        trend * 0.35
+        trend * 0.30
         +
-        volatility * 0.25
+        volatility * 0.20
         +
         rates * 0.15
         +
         market * 0.25
+        +
+        participation * 0.10
     )
     return round(
         clamp(score)
@@ -270,18 +405,23 @@ def risk_level(score):
 # 主程序
 # ============================================================
 def main():
-    print("正在获取市场数据……")
+    print(
+        "正在获取市场数据……"
+    )
     nasdaq = get_history(
-        "^IXIC",
-        260
+        "^IXIC"
     )
     vix = get_history(
-        "^VIX",
-        260
+        "^VIX"
     )
     tnx = get_history(
-        "^TNX",
-        260
+        "^TNX"
+    )
+    qqq = get_history(
+        "QQQ"
+    )
+    qqew = get_history(
+        "QQEW"
     )
     if not nasdaq:
         raise Exception(
@@ -293,30 +433,54 @@ def main():
         )
     if not tnx:
         raise Exception(
-            "无法获取美国10年期国债数据"
+            "无法获取10年期国债数据"
+        )
+    if not qqq:
+        raise Exception(
+            "无法获取 QQQ 数据"
+        )
+    if not qqew:
+        raise Exception(
+            "无法获取 QQEW 数据"
         )
     # -------------------------
-    # 各模块风险
+    # 风险模块
     # -------------------------
-    trend_risk, ma50, ma200 = (
-        calculate_trend_risk(
-            nasdaq
-        )
+    (
+        trend_risk,
+        ma50,
+        ma200
+    ) = calculate_trend_risk(
+        nasdaq
     )
-    volatility_risk, vix_percentile, vix_change = (
-        calculate_vix_risk(
-            vix
-        )
+    (
+        volatility_risk,
+        vix_percentile,
+        vix_change
+    ) = calculate_vix_risk(
+        vix
     )
-    rate_risk, rate_percentile, rate_change = (
-        calculate_rate_risk(
-            tnx
-        )
+    (
+        rate_risk,
+        treasury10y,
+        rate_percentile,
+        rate_change
+    ) = calculate_rate_risk(
+        tnx
     )
-    market_risk, return20, drawdown = (
-        calculate_market_risk(
-            nasdaq
-        )
+    (
+        market_risk,
+        return20,
+        drawdown
+    ) = calculate_market_risk(
+        nasdaq
+    )
+    (
+        participation_risk,
+        participation_spread
+    ) = calculate_participation_risk(
+        qqq,
+        qqew
     )
     # -------------------------
     # 总分
@@ -325,17 +489,21 @@ def main():
         trend_risk,
         volatility_risk,
         rate_risk,
-        market_risk
+        market_risk,
+        participation_risk
     )
     level = risk_level(
         score
     )
     # -------------------------
-    # 当前值
+    # 当前市场数据
     # -------------------------
-    nasdaq_current = nasdaq[-1]["close"]
-    vix_current = vix[-1]["close"]
-    tnx_current = tnx[-1]["close"]
+    nasdaq_current = (
+        nasdaq[-1]["close"]
+    )
+    vix_current = (
+        vix[-1]["close"]
+    )
     # -------------------------
     # 输出
     # -------------------------
@@ -351,7 +519,7 @@ def main():
         "risk_level":
             level,
         "model_version":
-            "1.0",
+            "1.1",
         "indicators": {
             "nasdaq": {
                 "name":
@@ -391,18 +559,37 @@ def main():
                     "美国10年期国债收益率",
                 "value":
                     round(
-                        tnx_current,
-                        2
+                        treasury10y,
+                        3
                     ),
                 "status":
                     (
                         "偏高"
-                        if tnx_current >= 5
+                        if treasury10y >= 5
                         else
                         "中等"
-                        if tnx_current >= 4
+                        if treasury10y >= 4
                         else
                         "较低"
+                    )
+            },
+            "participation": {
+                "name":
+                    "市场参与度",
+                "value":
+                    round(
+                        participation_spread,
+                        2
+                    ),
+                "status":
+                    (
+                        "集中度偏高"
+                        if participation_spread >= 10
+                        else
+                        "略偏集中"
+                        if participation_spread >= 5
+                        else
+                        "正常"
                     )
             }
         },
@@ -422,6 +609,10 @@ def main():
             "market":
                 round(
                     market_risk
+                ),
+            "participation":
+                round(
+                    participation_risk
                 )
         },
         "details": {
@@ -445,6 +636,11 @@ def main():
                     vix_change,
                     2
                 ),
+            "treasury10y":
+                round(
+                    treasury10y,
+                    3
+                ),
             "treasury_percentile":
                 round(
                     rate_percentile,
@@ -464,6 +660,11 @@ def main():
                 round(
                     drawdown,
                     2
+                ),
+            "qqq_qqew_60d_spread":
+                round(
+                    participation_spread,
+                    2
                 )
         }
     }
@@ -479,13 +680,35 @@ def main():
             indent=2
         )
     print(
-        f"风险分数：{score}"
+        "--------------------------------"
     )
     print(
-        f"风险等级：{level}"
+        f"NASDAQ Risk Score: {score}"
     )
     print(
-        "数据更新完成。"
+        f"Risk Level: {level}"
+    )
+    print(
+        "Components:"
+    )
+    print(
+        f"  Trend: {trend_risk:.1f}"
+    )
+    print(
+        f"  Volatility: {volatility_risk:.1f}"
+    )
+    print(
+        f"  Rates: {rate_risk:.1f}"
+    )
+    print(
+        f"  Market: {market_risk:.1f}"
+    )
+    print(
+        f"  Participation: "
+        f"{participation_risk:.1f}"
+    )
+    print(
+        "--------------------------------"
     )
 if __name__ == "__main__":
     main()
