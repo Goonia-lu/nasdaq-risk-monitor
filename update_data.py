@@ -4,12 +4,13 @@ from datetime import datetime, timezone
 
 
 # ============================================================
-# NASDAQ Risk Monitor v1.2
+# NASDAQ Risk Monitor v1.3
 #
-# 主要变化：
-# 1. 重新设计利率风险
-# 2. 保存每日历史风险分数
-# 3. 为后续 30/90 天趋势做好准备
+# 主要修复：
+# 1. 修复 ^TNX 单位错误
+# 2. 重新调整利率风险权重
+# 3. 保存 history.json
+# 4. Actions 日志完整输出核心数据
 # ============================================================
 
 
@@ -167,6 +168,7 @@ def calculate_trend_risk(nasdaq):
         else:
             risk50 = 0
 
+
     if ma200:
 
         distance200 = (
@@ -187,6 +189,7 @@ def calculate_trend_risk(nasdaq):
 
         else:
             risk200 = 0
+
 
     risk = (
         risk50 * 0.4
@@ -231,15 +234,18 @@ def calculate_vix_risk(vix):
 
         change = 0
 
+
     change_risk = clamp(
         50 + change * 5
     )
+
 
     risk = (
         percentile * 0.7
         +
         change_risk * 0.3
     )
+
 
     return (
         clamp(risk),
@@ -249,62 +255,71 @@ def calculate_vix_risk(vix):
 
 
 # ============================================================
-# 3. 利率风险 v1.2
+# 3. 利率风险
 #
-# 核心思想：
+# 注意：
 #
-# 高利率 ≠ 利率冲击
+# Yahoo ^TNX:
 #
-# 所以：
+#     5.11
 #
-# 当前水平       30%
-# 20日变化       40%
-# 60日变化       30%
+# 就表示：
 #
-# 其中变化部分采用历史分位数，
-# 避免随便写死某个市场环境下的阈值。
+#     5.11%
+#
+# 这里绝对不能 /10。
+#
 # ============================================================
 
 def calculate_rate_risk(tnx):
 
-    # Yahoo ^TNX 的数值需要 /10
-    raw_values = [
+    values = [
         x["close"]
         for x in tnx
     ]
 
-    values = [
-        value / 10
-        for value in raw_values
-    ]
-
     current = values[-1]
 
-    # 当前利率历史位置
+
+    # --------------------------------------------------------
+    # 当前水平
+    # --------------------------------------------------------
+
     level_percentile = percentile_rank(
         values,
         current
     )
 
 
+    # 当前水平虽然重要，
+    # 但不能单独决定风险。
+    #
+    # 将 0~100 的历史分位压缩，
+    # 防止高利率直接打满。
+    level_risk = (
+        level_percentile * 0.5
+    )
+
+
     # --------------------------------------------------------
-    # 计算历史上的 20 日变化
+    # 20 日变化
     # --------------------------------------------------------
 
     changes20 = []
 
-    for i in range(20, len(values)):
+    for i in range(
+        20,
+        len(values)
+    ):
 
-        change = (
+        changes20.append(
             values[i]
             -
             values[i - 20]
         )
 
-        changes20.append(change)
 
-
-    if len(values) >= 20:
+    if len(values) >= 21:
 
         change20 = (
             values[-1]
@@ -324,23 +339,24 @@ def calculate_rate_risk(tnx):
 
 
     # --------------------------------------------------------
-    # 计算历史上的 60 日变化
+    # 60 日变化
     # --------------------------------------------------------
 
     changes60 = []
 
-    for i in range(60, len(values)):
+    for i in range(
+        60,
+        len(values)
+    ):
 
-        change = (
+        changes60.append(
             values[i]
             -
             values[i - 60]
         )
 
-        changes60.append(change)
 
-
-    if len(values) >= 60:
+    if len(values) >= 61:
 
         change60 = (
             values[-1]
@@ -360,12 +376,16 @@ def calculate_rate_risk(tnx):
 
 
     # --------------------------------------------------------
-    # 利率风险
+    # 综合
+    #
+    # 当前水平：20%
+    # 20日变化：40%
+    # 60日变化：40%
     # --------------------------------------------------------
 
     risk = (
 
-        level_percentile * 0.30
+        level_risk * 0.20
 
         +
 
@@ -373,7 +393,7 @@ def calculate_rate_risk(tnx):
 
         +
 
-        change60_percentile * 0.30
+        change60_percentile * 0.40
 
     )
 
@@ -402,15 +422,21 @@ def calculate_market_risk(nasdaq):
 
     current = prices[-1]
 
+
     if len(prices) >= 20:
 
         return20 = (
-            current / prices[-20] - 1
+            current
+            /
+            prices[-20]
+            -
+            1
         ) * 100
 
     else:
 
         return20 = 0
+
 
     drawdown = drawdown_from_peak(
         prices
@@ -430,7 +456,6 @@ def calculate_market_risk(nasdaq):
         momentum_risk = 30
 
     else:
-
         momentum_risk = 5
 
 
@@ -447,7 +472,6 @@ def calculate_market_risk(nasdaq):
         drawdown_risk = 30
 
     else:
-
         drawdown_risk = 5
 
 
@@ -457,6 +481,7 @@ def calculate_market_risk(nasdaq):
         drawdown_risk * 0.55
     )
 
+
     return (
         clamp(risk),
         return20,
@@ -465,7 +490,7 @@ def calculate_market_risk(nasdaq):
 
 
 # ============================================================
-# 5. QQQ / QQEW 参与度代理
+# 5. 市场参与度代理
 # ============================================================
 
 def calculate_participation_risk(
@@ -483,10 +508,12 @@ def calculate_participation_risk(
         for x in qqew
     ]
 
+
     n = min(
         len(qqq_prices),
         len(qqew_prices)
     )
+
 
     qqq_prices = qqq_prices[-n:]
 
@@ -539,7 +566,6 @@ def calculate_participation_risk(
         risk = 40
 
     else:
-
         risk = 20
 
 
@@ -583,6 +609,7 @@ def calculate_total_risk(
 
     )
 
+
     return round(
         clamp(score)
     )
@@ -607,14 +634,6 @@ def risk_level(score):
 
 # ============================================================
 # 7. 保存历史
-#
-# history.json 会保存每天：
-#
-# 日期
-# 总风险
-# 五个子模块
-#
-# 后面网页就可以直接读取。
 # ============================================================
 
 def save_history(
@@ -654,30 +673,24 @@ def save_history(
 
         "score": score,
 
-        "trend": round(
-            trend
-        ),
+        "trend": round(trend),
 
-        "volatility": round(
-            volatility
-        ),
+        "volatility":
+            round(volatility),
 
-        "rates": round(
-            rates
-        ),
+        "rates":
+            round(rates),
 
-        "market": round(
-            market
-        ),
+        "market":
+            round(market),
 
-        "participation": round(
-            participation
-        )
+        "participation":
+            round(participation)
     }
 
 
-    # 如果当天已经运行过，
-    # 更新当天记录而不是重复追加。
+    # 同一天重新运行：
+    # 替换旧记录。
 
     history = [
         item
@@ -685,12 +698,14 @@ def save_history(
         if item.get("date") != today
     ]
 
+
     history.append(
         record
     )
 
 
-    # 最多保存一年
+    # 最多保存约一年
+
     history = history[-370:]
 
 
@@ -719,25 +734,15 @@ def main():
     )
 
 
-    nasdaq = get_history(
-        "^IXIC"
-    )
+    nasdaq = get_history("^IXIC")
 
-    vix = get_history(
-        "^VIX"
-    )
+    vix = get_history("^VIX")
 
-    tnx = get_history(
-        "^TNX"
-    )
+    tnx = get_history("^TNX")
 
-    qqq = get_history(
-        "QQQ"
-    )
+    qqq = get_history("QQQ")
 
-    qqew = get_history(
-        "QQEW"
-    )
+    qqew = get_history("QQEW")
 
 
     if not nasdaq:
@@ -766,7 +771,9 @@ def main():
         )
 
 
-    # 风险计算
+    # ========================================================
+    # 计算
+    # ========================================================
 
     (
         trend_risk,
@@ -830,13 +837,10 @@ def main():
         market_risk,
 
         participation_risk
-
     )
 
 
-    level = risk_level(
-        score
-    )
+    level = risk_level(score)
 
 
     nasdaq_current = (
@@ -868,7 +872,7 @@ def main():
             level,
 
         "model_version":
-            "1.2",
+            "1.3",
 
 
         "indicators": {
@@ -904,23 +908,17 @@ def main():
 
                     (
                         "高"
-
                         if vix_current >= 30
 
                         else
-
                         "偏高"
-
                         if vix_current >= 25
 
                         else
-
                         "中等"
-
                         if vix_current >= 20
 
                         else
-
                         "较低"
                     )
             },
@@ -941,17 +939,13 @@ def main():
 
                     (
                         "偏高"
-
                         if treasury10y >= 5
 
                         else
-
                         "中等"
-
                         if treasury10y >= 4
 
                         else
-
                         "较低"
                     )
             },
@@ -972,17 +966,13 @@ def main():
 
                     (
                         "集中度偏高"
-
                         if participation_spread >= 10
 
                         else
-
                         "略偏集中"
-
                         if participation_spread >= 5
 
                         else
-
                         "正常"
                     )
             }
@@ -992,29 +982,19 @@ def main():
         "risk_components": {
 
             "trend":
-                round(
-                    trend_risk
-                ),
+                round(trend_risk),
 
             "volatility":
-                round(
-                    volatility_risk
-                ),
+                round(volatility_risk),
 
             "rates":
-                round(
-                    rate_risk
-                ),
+                round(rate_risk),
 
             "market":
-                round(
-                    market_risk
-                ),
+                round(market_risk),
 
             "participation":
-                round(
-                    participation_risk
-                )
+                round(participation_risk)
         },
 
 
@@ -1116,6 +1096,7 @@ def main():
 
 
     # 保存历史
+
     save_history(
 
         score,
@@ -1129,69 +1110,145 @@ def main():
         market_risk,
 
         participation_risk
-
     )
 
 
     # ========================================================
-    # 控制台
+    # 完整输出
     # ========================================================
 
+    print("")
+    print("========================================")
+    print(" NASDAQ RISK MONITOR v1.3")
+    print("========================================")
+
+    print(f"Risk Score       : {score}")
+    print(f"Risk Level       : {level}")
+    print("")
+
+    print("Risk Components")
+    print("----------------------------------------")
+
     print(
-        "--------------------------------"
+        f"Trend            : {trend_risk:.1f}"
     )
 
     print(
-        f"NASDAQ Risk Score: {score}"
+        f"Volatility       : {volatility_risk:.1f}"
     )
 
     print(
-        f"Risk Level: {level}"
+        f"Rates            : {rate_risk:.1f}"
     )
 
     print(
-        "Components:"
+        f"Market           : {market_risk:.1f}"
     )
 
     print(
-        f"  Trend: {trend_risk:.1f}"
-    )
-
-    print(
-        f"  Volatility: {volatility_risk:.1f}"
-    )
-
-    print(
-        f"  Rates: {rate_risk:.1f}"
-    )
-
-    print(
-        f"  Market: {market_risk:.1f}"
-    )
-
-    print(
-        f"  Participation: "
+        f"Participation    : "
         f"{participation_risk:.1f}"
     )
 
+    print("")
+
+    print("Market Details")
+    print("----------------------------------------")
+
     print(
-        f"  10Y current: "
+        f"Nasdaq           : "
+        f"{nasdaq_current:.2f}"
+    )
+
+    print(
+        f"MA50             : "
+        f"{ma50:.2f}"
+    )
+
+    print(
+        f"MA200            : "
+        f"{ma200:.2f}"
+    )
+
+    print(
+        f"20d Return       : "
+        f"{return20:+.2f}%"
+    )
+
+    print(
+        f"Drawdown         : "
+        f"{drawdown:.2f}%"
+    )
+
+    print("")
+
+    print("Volatility")
+    print("----------------------------------------")
+
+    print(
+        f"VIX              : "
+        f"{vix_current:.2f}"
+    )
+
+    print(
+        f"VIX Percentile   : "
+        f"{vix_percentile:.1f}%"
+    )
+
+    print(
+        f"VIX 20d Change   : "
+        f"{vix_change:+.2f}%"
+    )
+
+    print("")
+
+    print("Rates")
+    print("----------------------------------------")
+
+    print(
+        f"10Y Yield        : "
         f"{treasury10y:.3f}%"
     )
 
     print(
-        f"  10Y 20d change: "
+        f"10Y Percentile   : "
+        f"{rate_percentile:.1f}%"
+    )
+
+    print(
+        f"10Y 20d Change   : "
         f"{rate_change20:+.3f} pp"
     )
 
     print(
-        f"  10Y 60d change: "
+        f"10Y 60d Change   : "
         f"{rate_change60:+.3f} pp"
     )
 
     print(
-        "--------------------------------"
+        f"20d Change Pctl  : "
+        f"{rate_change20_percentile:.1f}%"
     )
+
+    print(
+        f"60d Change Pctl  : "
+        f"{rate_change60_percentile:.1f}%"
+    )
+
+    print("")
+
+    print("Participation")
+    print("----------------------------------------")
+
+    print(
+        f"QQQ/QQEW Spread  : "
+        f"{participation_spread:+.2f}%"
+    )
+
+    print("")
+
+    print("History saved to history.json")
+    print("========================================")
 
 
 if __name__ == "__main__":
