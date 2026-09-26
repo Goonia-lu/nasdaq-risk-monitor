@@ -16,5 +16,14 @@
     "rates": 90,
     "market": 5,
     "participation": 20
+  },
+  {
+    "date": "2026-09-26",
+    "score": 23,
+    "trend": 6,
+    "volatility": 20,
+    "rates": 90,
+    "market": 5,
+    "participation": 20
   }
 ]
