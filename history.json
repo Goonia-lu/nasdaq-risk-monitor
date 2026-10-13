@@ -169,5 +169,14 @@
     "rates": 83,
     "market": 5,
     "participation": 20
+  },
+  {
+    "date": "2026-10-13",
+    "score": 19,
+    "trend": 6,
+    "volatility": 12,
+    "rates": 79,
+    "market": 5,
+    "participation": 20
   }
 ]
