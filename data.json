@@ -1,50 +1,50 @@
 {
-  "updated": "2026-11-22",
-  "risk_score": 77,
-  "risk_level": "高风险",
+  "updated": "2026-11-24",
+  "risk_score": 63,
+  "risk_level": "较高风险",
   "model_version": "1.3",
   "indicators": {
     "nasdaq": {
       "name": "纳斯达克",
-      "value": 22617.73,
+      "value": 24089.56,
       "status": "正常"
     },
     "vix": {
       "name": "VIX",
-      "value": 35.89,
-      "status": "高"
+      "value": 26.62,
+      "status": "偏高"
     },
     "treasury10y": {
       "name": "美国10年期国债收益率",
-      "value": 4.912,
+      "value": 4.918,
       "status": "中等"
     },
     "participation": {
       "name": "市场参与度",
-      "value": 4.92,
-      "status": "正常"
+      "value": 5.36,
+      "status": "略偏集中"
     }
   },
   "risk_components": {
-    "trend": 91,
-    "volatility": 100,
-    "rates": 35,
-    "market": 80,
-    "participation": 40
+    "trend": 64,
+    "volatility": 97,
+    "rates": 32,
+    "market": 58,
+    "participation": 55
   },
   "details": {
-    "nasdaq_ma50": 26113.44,
-    "nasdaq_ma200": 25157.46,
-    "vix_percentile": 100.0,
-    "vix_20d_change": 95.16,
-    "treasury10y": 4.912,
+    "nasdaq_ma50": 26071.5,
+    "nasdaq_ma200": 25162.76,
+    "vix_percentile": 95.7,
+    "vix_20d_change": 51.94,
+    "treasury10y": 4.918,
     "treasury_percentile": 81.7,
-    "treasury_20d_change": -0.076,
-    "treasury_60d_change": 0.24,
-    "treasury_20d_change_percentile": 19.4,
-    "treasury_60d_change_percentile": 48.4,
-    "nasdaq_20d_return": -13.57,
-    "nasdaq_drawdown": -18.05,
-    "qqq_qqew_60d_spread": 4.92
+    "treasury_20d_change": -0.068,
+    "treasury_60d_change": 0.198,
+    "treasury_20d_change_percentile": 20.3,
+    "treasury_60d_change_percentile": 38.2,
+    "nasdaq_20d_return": -9.02,
+    "nasdaq_drawdown": -12.72,
+    "qqq_qqew_60d_spread": 5.36
   }
 }
